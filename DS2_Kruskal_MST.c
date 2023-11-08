@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include<math.h>
 
 #define TRUE 1
 #define FALSE 0
@@ -7,85 +8,169 @@
 #define MAX_VERTICES 100
 #define INF 1000
 
-int parent[MAX_VERTICES];		// ºÎ¸ğ ³ëµå
-// ÃÊ±âÈ­
+int parent[MAX_VERTICES];		// ë¶€ëª¨ ë…¸ë“œ
+
+// ì´ˆê¸°í™”
 void set_init(int n) {
 	for (int i = 0; i < n; i++)
-		parent[i] = -1;
+		parent[i] = -1;	
 }
-// curr°¡ ¼ÓÇÏ´Â ÁıÇÕÀ» ¹İÈ¯ÇÑ´Ù.
+// currê°€ ì†í•˜ëŠ” ì§‘í•©ì„ ë°˜í™˜í•œë‹¤.
 int set_find(int curr) {
 	if (parent[curr] == -1)
-		return curr; 			// ·çÆ® 
+		return curr; 			// ë£¨íŠ¸ 
 	while (parent[curr] != -1) curr = parent[curr];
 	return curr;
 }
-// µÎ°³ÀÇ ¿ø¼Ò°¡ ¼ÓÇÑ ÁıÇÕÀ» ÇÕÄ£´Ù.
+// ë‘ê°œì˜ ì›ì†Œê°€ ì†í•œ ì§‘í•©ì„ í•©ì¹œë‹¤.
 void set_union(int a, int b) {
-	int root1 = set_find(a);	// ³ëµå aÀÇ ·çÆ®¸¦ Ã£´Â´Ù. 
-	int root2 = set_find(b);	// ³ëµå bÀÇ ·çÆ®¸¦ Ã£´Â´Ù. 
-	if (root1 != root2) 	// ÇÕÇÑ´Ù. 
+	int root1 = set_find(a);	// ë…¸ë“œ aì˜ ë£¨íŠ¸ë¥¼ ì°¾ëŠ”ë‹¤. 
+	int root2 = set_find(b);	// ë…¸ë“œ bì˜ ë£¨íŠ¸ë¥¼ ì°¾ëŠ”ë‹¤. 
+	if (root1 != root2) 	// í•©í•œë‹¤. 
 		parent[root1] = root2;
 }
 
-struct Edge {			// °£¼±À» ³ªÅ¸³»´Â ±¸Á¶Ã¼
+typedef struct Edge{			// ê°„ì„ ì„ ë‚˜íƒ€ë‚´ëŠ” êµ¬ì¡°ì²´
 	int start, end, weight;
-};
+} Edge;
+
 
 typedef struct GraphType {
-	int n;	// °£¼±ÀÇ °³¼ö
-	struct Edge edges[2 * MAX_VERTICES];
+	int n;	// ë…¸ë“œì˜ ê°œìˆ˜
+	int num_edges;
+	Edge edges[2 * MAX_VERTICES];
 } GraphType;
-// ±×·¡ÇÁ ÃÊ±âÈ­ 
-void graph_init(GraphType* g) {
-	g->n = 0;
+// ê·¸ë˜í”„ ì´ˆê¸°í™” 
+void graph_init(GraphType* g, int n) {
+	g->n = n;
+	g->num_edges = 0;
 	for (int i = 0; i < 2 * MAX_VERTICES; i++) {
 		g->edges[i].start = 0;
 		g->edges[i].end = 0;
 		g->edges[i].weight = INF;
 	}
 }
-// °£¼± »ğÀÔ ¿¬»ê
+// ê°„ì„  ì‚½ì… ì—°ì‚°
 void insert_edge(GraphType* g, int start, int end, int w) {
-	g->edges[g->n].start = start;
-	g->edges[g->n].end = end;
-	g->edges[g->n].weight = w;
-	g->n++;
+	g->edges[g->num_edges].start = start;
+	g->edges[g->num_edges].end = end;
+	g->edges[g->num_edges].weight = w;
+	g->num_edges++;
 }
-// qsort()¿¡ »ç¿ëµÇ´Â ÇÔ¼ö
+// qsort()ì— ì‚¬ìš©ë˜ëŠ” í•¨ìˆ˜
 int compare(const void* a, const void* b) {
-	struct Edge* x = (struct Edge*)a;
-	struct Edge* y = (struct Edge*)b;
+	struct Edge* x = (Edge*)a;
+	struct Edge* y = (Edge*)b;
 	return (x->weight - y->weight);
 }
-// kruskalÀÇ ÃÖ¼Ò ºñ¿ë ½ÅÀå Æ®¸® ÇÁ·Î±×·¥
+// kruskalì˜ ìµœì†Œ ë¹„ìš© ì‹ ì¥ íŠ¸ë¦¬ í”„ë¡œê·¸ë¨
 void kruskal(GraphType* g) {
-	int edge_accepted = 0;	// ÇöÀç±îÁö ¼±ÅÃµÈ °£¼±ÀÇ ¼ö	
-	int uset, vset;			// Á¤Á¡ u¿Í Á¤Á¡ vÀÇ ÁıÇÕ ¹øÈ£
+	int edge_accepted = 0;	// í˜„ì¬ê¹Œì§€ ì„ íƒëœ ê°„ì„ ì˜ ìˆ˜	
+	int uset, vset;			// ì •ì  uì™€ ì •ì  vì˜ ì§‘í•© ë²ˆí˜¸
 	struct Edge e;
 
-	set_init(g->n);				// ÁıÇÕ ÃÊ±âÈ­
-	qsort(g->edges, g->n, sizeof(struct Edge), compare);
-
-	printf("Å©·ç½ºÄ® ÃÖ¼Ò ½ÅÀå Æ®¸® ¾Ë°í¸®Áò \n");
+	set_init(g->n);				// ì§‘í•© ì´ˆê¸°í™”
+	qsort(g->edges, g->num_edges, sizeof(Edge), compare);
+	
+	printf("1. Kruskal MST Algorithm\n");
 	int i = 0;
-	while (edge_accepted < (g->n - 1))	// °£¼±ÀÇ ¼ö < (n-1)
+	while (edge_accepted < (g->n - 1))	// ê°„ì„ ì˜ ìˆ˜ < (n-1)
 	{
 		e = g->edges[i];
-		uset = set_find(e.start);		// Á¤Á¡ uÀÇ ÁıÇÕ ¹øÈ£ 
-		vset = set_find(e.end);		// Á¤Á¡ vÀÇ ÁıÇÕ ¹øÈ£
-		if (uset != vset) {			// ¼­·Î ¼ÓÇÑ ÁıÇÕÀÌ ´Ù¸£¸é
-			printf("Edge (%d,%d) Select %d \n", e.start, e.end, e.weight);
+		uset = set_find(e.start);		// ì •ì  uì˜ ì§‘í•© ë²ˆí˜¸ 
+		vset = set_find(e.end);		// ì •ì  vì˜ ì§‘í•© ë²ˆí˜¸
+		if (uset != vset) {			// ì„œë¡œ ì†í•œ ì§‘í•©ì´ ë‹¤ë¥´ë©´
+			printf("Edge (%d, %d) Select %d \n", e.start, e.end, e.weight);
 			edge_accepted++;
-			set_union(uset, vset);	// µÎ°³ÀÇ ÁıÇÕÀ» ÇÕÄ£´Ù.
+			set_union(uset, vset);	// ë‘ê°œì˜ ì§‘í•©ì„ í•©ì¹œë‹¤.
 		}
 		i++;
 	}
 }
+
+// MinHeap êµ¬ì¡°ì²´ ì •ì˜
+typedef struct HeapType {
+	Edge heap[MAX_VERTICES];
+	int heapsize;
+} HeapType;
+
+// Heap ìƒì„± í•¨ìˆ˜
+HeapType* create() {
+	return ((HeapType*)malloc(sizeof(HeapType)));
+}
+
+// Heap ì´ˆê¸°í™” í•¨ìˆ˜
+void init_heap(HeapType* h) {
+	h->heapsize = 0;
+}
+
+// Heap ì‚½ì… í•¨ìˆ˜
+void insert_heap(HeapType* h, Edge* node) {
+	int i = ++h->heapsize;
+	while (i != 1 && node->weight < h->heap[i / 2].weight) {
+		h->heap[i] = h->heap[i / 2];
+		i = i / 2;
+	}
+	h->heap[i] = *node;
+}
+
+// Heap ì‚­ì œ í•¨ìˆ˜
+Edge delete_heap(HeapType* h) {
+	Edge item, temp;
+	int parent = 1, child = 2;
+	item = h->heap[1];
+	temp = h->heap[h->heapsize--];
+
+	while (child < h->heapsize && temp.weight > h->heap[child].weight) {
+		if (h->heap[child].weight > h->heap[child + 1].weight) {
+			child++;
+		}
+		if (temp.weight < h->heap[child].weight) break;
+		h->heap[parent] = h->heap[child];
+		parent = child;
+		child *= 2;
+	}
+	h->heap[parent] = temp;
+	return item;
+}
+
+// MinHeapì„ ì‚¬ìš©í•œ Kruskal MST ì•Œê³ ë¦¬ì¦˜ í•¨ìˆ˜
+void kruskal_minheap(GraphType* g) {
+	int edge_accepted = 0;
+	int uset, vset;
+	Edge e;
+
+	HeapType* h = create();
+	init_heap(h);
+
+	set_init(g->n);
+
+	for (int i = 0; i <= g->num_edges; i++) {
+		insert_heap(h, &g->edges[i]);
+	}
+
+	printf("2. Using MinHeap MST Algorithm\n");
+
+	while (edge_accepted < (g->n - 1)) {
+		e = delete_heap(h);
+
+		uset = set_find(e.start);
+		vset = set_find(e.end);
+
+		if (uset != vset) {
+			printf("Edge (%d, %d) Select %d\n", e.start, e.end, e.weight);
+			edge_accepted++;
+			set_union(uset, vset);
+		}
+	}
+
+	free(h);
+}
+
 int main(int argc, char* argv[]) {
 	GraphType* g;
 	g = (GraphType*)malloc(sizeof(GraphType));
-	graph_init(g);
+	graph_init(g, 10);
 
 	insert_edge(g, 1, 2, 3);
 	insert_edge(g, 1, 6, 11);
@@ -108,6 +193,8 @@ int main(int argc, char* argv[]) {
 	insert_edge(g, 9, 10, 10);
 
 	kruskal(g);
+	printf("\n");
+	kruskal_minheap(g);
 	free(g);
 	return 0;
 }
